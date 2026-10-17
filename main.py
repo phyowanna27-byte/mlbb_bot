@@ -15,28 +15,26 @@ from telegram.ext import (
     filters,
 )
 
-# Logging
+# Logging Setup
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
 # Configurations
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "ဒီနေရာမှာ_BOT_TOKEN_အစားထိုးပါ")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "8863215122"))
 SHEET_ID = "1Z-a2t1EBZGe8R4BUwm5-zo4Ss_6IWfPAES_TR9VL7cI"
 SHEET_CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
-# Direct Cloud Image URLs for QR Codes
+# Cloud Image URLs for QR Codes
 QR_URLS = [
-    "https://i.ibb.co/6R2qZz7W/thai-qr.png",   # Thai PromptPay (Bangkok Bank)
-    "https://i.ibb.co/VWVw4z4P/kpay-qr.jpg",    # KPay (Ei Ei Phyu)
-    "https://i.ibb.co/sJcwtXv7/wave-qr.jpg"     # WavePay (Swan Pyae Sone)
+    "https://i.ibb.co/6R2qZz7W/thai-qr.png",   # Thai PromptPay
+    "https://i.ibb.co/VWVw4z4P/kpay-qr.jpg",    # KPay
+    "https://i.ibb.co/sJcwtXv7/wave-qr.jpg"     # WavePay
 ]
 
-# Global temporary state for customer orders
 USER_ORDERS = {}
 
-# MLBB Packages Definition
 PACKAGES = {
     "weekly": [f"Weekly Pass {i}x" for i in range(1, 11)],
     "dia2x": [
@@ -62,11 +60,10 @@ PACKAGES = {
 }
 
 def get_sheet_prices():
-    """Google Sheet ထဲမှ ဈေးနှုန်းများကို အချိန်နှင့်တပြေးညီ ဆွဲယူခြင်း"""
     prices = {}
     try:
         req = urllib.request.Request(SHEET_CSV_URL, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             lines = [line.decode("utf-8") for line in resp.readlines()]
             reader = csv.DictReader(lines)
             for row in reader:
@@ -79,7 +76,6 @@ def get_sheet_prices():
     return prices
 
 def check_mlbb_id(uid, zone):
-    """isan.eu.org API ဖြင့် IGN နှင့် Server စစ်ဆေးခြင်း"""
     try:
         url = f"https://api.isan.eu.org/nickname/ml?id={uid}&zone={zone}"
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -87,7 +83,7 @@ def check_mlbb_id(uid, zone):
             data = json.loads(response.read().decode())
             if data.get("success"):
                 ign = data.get("name", "Unknown")
-                server = "TH (ထိုင်း)" if zone.startswith("2") or zone.startswith("3") else "MM (မြန်မာ)"
+                server = "TH Server" if zone.startswith("2") or zone.startswith("3") else "MM Server"
                 return ign, server
     except Exception as e:
         logging.error(f"API Error: {e}")
@@ -102,7 +98,6 @@ def get_main_menu_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# Command /start or /menu
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
         "👋 မင်္ဂလာပါခင်ဗျာ၊ MLBB Game Top-up Reseller ဝန်ဆောင်မှုမှ ကြိုဆိုပါသည်။\n\n"
@@ -110,7 +105,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(msg, reply_markup=get_main_menu_keyboard())
 
-# Callback Query Handler
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -139,13 +133,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "💳 **ငွေလွှဲရန် အကောင့်အချက်အလက်များ**\n\n"
             "🇹🇭 **PromptPay (Thai QR)**\n"
             "• အမည်: MR PHYO WANNA LINN\n"
-            "• Mobile: 061-xxx-0038 (Bangkok Bank)\n\n"
+            "• ဖုန်း: 061-xxx-0038 (Bangkok Bank)\n\n"
             "🇲🇲 **KPay**\n"
             "• အမည်: Ei Ei Phyu\n"
-            "• နံပါတ်: `*******1686`\n\n"
+            "• အကောင့်: `*******1686`\n\n"
             "🇲🇲 **WavePay**\n"
             "• အမည်: Swan Pyae Sone\n"
-            "• နံပါတ်: `09986422066`\n"
+            "• ဖုန်း: `09986422066`\n"
         )
         keyboard = [[InlineKeyboardButton("🔙 မီနူးသို့", callback_data="btn_main_menu")]]
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
@@ -192,10 +186,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"✅ သင်ရွေးချယ်ထားသော ပစ္စည်း: **{selected_item}**\n\n"
             f"🎮 ကျေးဇူးပြု၍ သင်၏ **MLBB UID နှင့် Zone ID** ကို ရိုက်ပို့ပေးပါခင်ဗျာ။\n"
-            f"(ဥပမာ ပုံစံ - `95480598 2500` သို့မဟုတ် `95480598 (2500)`)"
+            f"(ဥပမာ - `95480598 2500`)"
         )
 
-    # Admin Order Approval
     elif data.startswith("adm_ok_"):
         cust_id = int(data.replace("adm_ok_", ""))
         await query.edit_message_caption(
@@ -210,7 +203,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-# Customer Message Handler (UID & Zone ID)
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text or ""
@@ -221,7 +213,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             uid, zone = match.group(1), match.group(2)
             ign, server = check_mlbb_id(uid, zone)
             if not ign:
-                ign = "စစ်ဆေး၍မရပါ (အကောင့်မှန်ကန်ကြောင်း ပြန်စစ်ပါ)"
+                ign = "စစ်ဆေးမရပါ"
                 server = "Unknown"
 
             USER_ORDERS[user_id]["uid"] = uid
@@ -237,13 +229,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"• UID: `{uid} ({zone})`\n"
                 f"• ပစ္စည်း: **{USER_ORDERS[user_id]['item']}**\n\n"
                 f"💳 **ငွေလွှဲရန် အောက်ပါ QR များဖြင့် Scan ဖတ်နိုင်ပါသည်-**\n"
-                f"1️⃣ 🇹🇭 Thai PromptPay (MR PHYO WANNA LINN)\n"
-                f"2️⃣ 🇲🇲 KPay (Ei Ei Phyu - `*******1686`)\n"
-                f"3️⃣ 🇲🇲 WavePay (Swan Pyae Sone - `09986422066`)\n\n"
-                f"📌 *ငွေလွှဲပြီးပါက ဤနေရာတွင် ငွေလွှဲစလစ် (Screenshot ပုံ) ကို ပို့ပေးပါခင်ဗျာ။*"
+                f"1️⃣ 🇹🇭 PromptPay (MR PHYO WANNA LINN)\n"
+                f"2️⃣ 🇲🇲 KPay (Ei Ei Phyu)\n"
+                f"3️⃣ 🇲🇲 WavePay (Swan Pyae Sone)\n\n"
+                f"📌 *ငွေလွှဲပြီးပါက ဤနေရာတွင် ငွေလွှဲစလစ်ပုံ ပို့ပေးပါခင်ဗျာ။*"
             )
 
-            # Send 3 Online QR Images
             media_group = [
                 InputMediaPhoto(media=QR_URLS[0], caption=info_text, parse_mode="Markdown"),
                 InputMediaPhoto(media=QR_URLS[1]),
@@ -251,9 +242,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
             await update.message.reply_media_group(media=media_group)
         else:
-            await update.message.reply_text("⚠️ ID ပုံစံ မှားယွင်းနေပါသည်။ ဥပမာ `95480598 2500` ပုံစံဖြင့် သေချာ ပြန်ရိုက်ပို့ပေးပါခင်ဗျာ။")
+            await update.message.reply_text("⚠️ ID ပုံစံ မှားယွင်းနေပါသည်။ ဥပမာ `95480598 2500` ဟု ရိုက်ပို့ပေးပါ။")
 
-# Customer Slip Photo Handler
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id in USER_ORDERS and USER_ORDERS[user_id].get("state") == "AWAIT_SLIP":
@@ -267,7 +257,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🌐 Server: `{order['server']}`\n"
             f"🆔 UID: `{order['uid']} ({order['zone']})`\n"
             f"📦 ပစ္စည်း: **{order['item']}**\n\n"
-            f"စလစ်စစ်ဆေးပြီးပါက အောက်ပါခလုတ်ကို နှိပ်ပါ-"
+            f"စလစ်စစ်ဆေးပြီးပါက အတည်ပြုခလုတ်ကို နှိပ်ပါ-"
         )
 
         admin_keyboard = [[InlineKeyboardButton("✅ စိန်ထည့်ပြီး အတည်ပြုမည်", callback_data=f"adm_ok_{user_id}")]]
@@ -281,13 +271,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         await update.message.reply_text(
-            "✅ ငွေလွှဲစလစ် လက်ခံရရှိပါပြီခင်ဗျာ။\nAdmin မှ စစ်ဆေးအတည်ပြုပြီးသည်နှင့် စိန်ထည့်သွင်းပေးပါမည်။ ခေတ္တစောင့်ဆိုင်းပေးပါခင်ဗျာ။"
+            "✅ ငွေလွှဲစလစ် လက်ခံရရှိပါပြီခင်ဗျာ။ Admin မှ စစ်ဆေးပြီး စိန်ထည့်သွင်းပေးပါမည်။"
         )
         USER_ORDERS.pop(user_id, None)
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", start))
     app.add_handler(CallbackQueryHandler(handle_callback))
