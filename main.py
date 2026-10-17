@@ -26,6 +26,13 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "8863215122"))
 SHEET_ID = "1Z-a2t1EBZGe8R4BUwm5-zo4Ss_6IWfPAES_TR9VL7cI"
 SHEET_CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
+# Direct Cloud Image URLs for QR Codes
+QR_URLS = [
+    "https://i.ibb.co/6R2qZz7W/thai-qr.png",   # Thai PromptPay (Bangkok Bank)
+    "https://i.ibb.co/VWVw4z4P/kpay-qr.jpg",    # KPay (Ei Ei Phyu)
+    "https://i.ibb.co/sJcwtXv7/wave-qr.jpg"     # WavePay (Swan Pyae Sone)
+]
+
 # Global temporary state for customer orders
 USER_ORDERS = {}
 
@@ -236,21 +243,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"📌 *ငွေလွှဲပြီးပါက ဤနေရာတွင် ငွေလွှဲစလစ် (Screenshot ပုံ) ကို ပို့ပေးပါခင်ဗျာ။*"
             )
 
-            # Send 3 QR Photos (PromptPay, KPay, WavePay)
-            media_group = []
-            if os.path.exists("thai_qr.jpg"):
-                media_group.append(InputMediaPhoto(open("thai_qr.jpg", "rb"), caption=info_text, parse_mode="Markdown"))
-            if os.path.exists("kpay_qr.jpg"):
-                caption_for_kpay = "" if media_group else info_text
-                media_group.append(InputMediaPhoto(open("kpay_qr.jpg", "rb"), caption=caption_for_kpay, parse_mode="Markdown"))
-            if os.path.exists("wave_qr.jpg"):
-                caption_for_wave = "" if media_group else info_text
-                media_group.append(InputMediaPhoto(open("wave_qr.jpg", "rb"), caption=caption_for_wave, parse_mode="Markdown"))
-
-            if media_group:
-                await update.message.reply_media_group(media=media_group)
-            else:
-                await update.message.reply_text(info_text, parse_mode="Markdown")
+            # Send 3 Online QR Images
+            media_group = [
+                InputMediaPhoto(media=QR_URLS[0], caption=info_text, parse_mode="Markdown"),
+                InputMediaPhoto(media=QR_URLS[1]),
+                InputMediaPhoto(media=QR_URLS[2])
+            ]
+            await update.message.reply_media_group(media=media_group)
         else:
             await update.message.reply_text("⚠️ ID ပုံစံ မှားယွင်းနေပါသည်။ ဥပမာ `95480598 2500` ပုံစံဖြင့် သေချာ ပြန်ရိုက်ပို့ပေးပါခင်ဗျာ။")
 
