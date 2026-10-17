@@ -21,8 +21,8 @@ logging.basicConfig(
 )
 
 # Configurations
-BOT_TOKEN = os.getenv("BOT_TOKEN", "ဒီနေရာမှာ_BOT_TOKEN_အစားထိုးပါ")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "8863215122"))
+BOT_TOKEN = "8834166717:AAFfuD_ge9Xkfa48sp0iBaRXRpHALWaI5uk"
+ADMIN_ID = 8863215122
 SHEET_ID = "1Z-a2t1EBZGe8R4BUwm5-zo4Ss_6IWfPAES_TR9VL7cI"
 SHEET_CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
