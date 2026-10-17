@@ -1,6 +1,7 @@
 import os
 import logging
 import threading
+import requests
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -13,6 +14,31 @@ PENDING_ORDERS = {}
 AWAITING_SLIP = {}
 
 logging.basicConfig(level=logging.INFO)
+
+def check_mlbb_account(uid, zone):
+    try:
+        url = f"https://api.isan.eu.org/nickname/ml?id={uid}&zone={zone}"
+        res = requests.get(url, timeout=7).json()
+        if res.get("success"):
+            name = res.get("name", "Unknown")
+            country = res.get("country", "")
+            
+            # Country Check logic
+            if country == "MM" or "myanmar" in country.lower():
+                server_text = "🇲🇲 Myanmar Server"
+            elif country == "TH" or "thailand" in country.lower():
+                server_text = "🇹🇭 Thailand Server"
+            elif country:
+                server_text = f"🌐 {country} Server"
+            else:
+                server_text = "🌐 Global Server"
+                
+            return True, name, server_text
+        else:
+            return False, None, None
+    except Exception as e:
+        logging.error(f"API Error: {e}")
+        return True, "Check Failed", "Server Unknown"
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -41,14 +67,27 @@ async def handle_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         buyer = msg.from_user.full_name or msg.from_user.first_name
         chat_id = msg.chat_id
 
+        # Check Account & Server
+        status, ign_name, server_info = check_mlbb_account(uid, zone)
+        if not status:
+            await msg.reply_text("❌ MLBB Account ID / Zone ID မှားယွင်းနေပါသည်။ သေချာပြန်စစ်ပေးပါ။")
+            return
+
         confirm = await msg.reply_text(
-            f"⏳ *အော်ဒါလက်ခံရရှိပါပြီ*\nUID: `{uid} ({zone})`\nOrder: `{amount} Diamonds`\nAdmin စစ်ဆေးနေပါသည်...",
+            f"⏳ *အော်ဒါလက်ခံရရှိပါပြီ*\n"
+            f"👤 IGN: `{ign_name}`\n"
+            f"🌐 Server: *{server_info}*\n"
+            f"🎮 UID: `{uid} ({zone})`\n"
+            f"💎 Order: `{amount} Diamonds`\n\n"
+            f"Admin စစ်ဆေးအတည်ပြုနေပါသည်...",
             parse_mode="Markdown"
         )
+        
         key = f"{chat_id}_{confirm.message_id}"
         PENDING_ORDERS[key] = {
             "uid": uid, "zone": zone, "amount": amount,
-            "chat_id": chat_id, "mid": confirm.message_id, "buyer": buyer
+            "chat_id": chat_id, "mid": confirm.message_id, "buyer": buyer,
+            "ign": ign_name, "server": server_info
         }
         kb = [
             [
@@ -57,7 +96,14 @@ async def handle_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ],
             [InlineKeyboardButton("❌ ငြင်းပယ်မည်", callback_data=f"rej_{key}")]
         ]
-        text_admin = f"🚨 အော်ဒါအသစ်!\n👤 {buyer}\n🎮 UID: `{uid}` ({zone})\n💎 `{amount}` Diamonds"
+        text_admin = (
+            f"🚨 *အော်ဒါအသစ် ရောက်ရှိ!*\n"
+            f"👤 ကာစတမ်မာ: {buyer}\n"
+            f"🎮 IGN: `{ign_name}`\n"
+            f"🌐 Server: *{server_info}*\n"
+            f"🆔 UID: `{uid} ({zone})`\n"
+            f"💎 Order: `{amount}` Diamonds"
+        )
         await context.bot.send_message(chat_id=ADMIN_ID, text=text_admin, reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -74,12 +120,14 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if action == "slip":
         AWAITING_SLIP[ADMIN_ID] = key
-        await query.edit_message_text(f"📸 UID `{order['uid']}` အတွက် စလစ်ပုံ ပို့ပေးပါ-")
+        await query.edit_message_text(f"📸 `{order['ign']}` ({order['server']}) အတွက် စလစ်ပုံ ပို့ပေးပါ-")
     elif action == "done":
         rpt = (
             "==== Transaction Report ====\n"
+            f"IGN    : {order['ign']}\n"
+            f"Server : {order['server']}\n"
             f"UID    : {order['uid']} ({order['zone']})\n"
-            f"Name   : {order['buyer']}\n"
+            f"Buyer  : {order['buyer']}\n"
             f"Order  : {order['amount']} Diamonds\n"
             f"SN     :\n{sn}\n"
             f"Time   : {now}\n"
@@ -107,8 +155,10 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sn = f"S{datetime.now().strftime('%y%m%d%H%M%S')}ZUWE"
     rpt = (
         "==== Transaction Report ====\n"
+        f"IGN    : {order['ign']}\n"
+        f"Server : {order['server']}\n"
         f"UID    : {order['uid']} ({order['zone']})\n"
-        f"Name   : {order['buyer']}\n"
+        f"Buyer  : {order['buyer']}\n"
         f"Order  : {order['amount']} Diamonds\n"
         f"SN     :\n{sn}\n"
         f"Time   : {now}\n"
