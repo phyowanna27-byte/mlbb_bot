@@ -23,57 +23,66 @@ logging.basicConfig(
 # Configurations
 BOT_TOKEN = "8834166717:AAFfuD_ge9Xkfa48sp0iBaRXRpHALWaI5uk"
 ADMIN_ID = 8863215122
-SHEET_ID = "1Z-a2t1EBZGe8R4BUwm5-zo4Ss_6IWfPAES_TR9VL7cI"
-SHEET_CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
 # Cloud Image URLs for QR Codes
-QR_URLS = [
+DEFAULT_QR_URLS = [
     "https://i.ibb.co/6R2qZz7W/thai-qr.png",   # Thai PromptPay
     "https://i.ibb.co/VWVw4z4P/kpay-qr.jpg",    # KPay
     "https://i.ibb.co/sJcwtXv7/wave-qr.jpg"     # WavePay
 ]
 
+# ဈေးနှုန်းစာရင်းအသစ်များ (ဘတ်ဈေး နှင့် ကျပ်ဈေး)
+PRICES_LIST = {
+    "Weekly Pass (၁ ပတ်စာ)": "57 ฿ / 7,200 Ks",
+    "86 Diamonds": "46 ฿ / 5,800 Ks",
+    "172 Diamonds": "92 ฿ / 11,500 Ks",
+    "275 Diamonds": "140 ฿ / 17,700 Ks",
+    "343 Diamonds": "180 ฿ / 22,700 Ks",
+    "429 Diamonds": "225 ฿ / 28,200 Ks",
+    "565 Diamonds": "288 ฿ / 36,300 Ks",
+    "600 Diamonds": "315 ฿ / 39,300 Ks",
+    "706 Diamonds": "360 ฿ / 45,300 Ks",
+    "878 Diamonds": "450 ฿ / 56,800 Ks",
+    "963 Diamonds": "495 ฿ / 62,000 Ks",
+    "1049 Diamonds": "540 ฿ / 67,800 Ks",
+    "1135 Diamonds": "585 ฿ / 73,500 Ks",
+    "1412 Diamonds": "720 ฿ / 90,500 Ks",
+    "1584 Diamonds": "810 ฿ / 102,000 Ks",
+    "1755 Diamonds": "900 ฿ / 113,000 Ks",
+    "2195 Diamonds": "1080 ฿ / 137,000 Ks",
+    "3244 Diamonds": "1620 ฿ / 205,000 Ks",
+    "3688 Diamonds": "1790 ฿ / 229,000 Ks",
+    "4394 Diamonds": "2150 ฿ / 274,000 Ks",
+    "5532 Diamonds": "2690 ฿ / 345,000 Ks",
+    "6238 Diamonds": "2990 ฿ / 389,000 Ks",
+    "9288 Diamonds": "4390 ฿ / 573,000 Ks",
+    "11483 Diamonds": "5490 ฿ / 709,000 Ks",
+    "12976 Diamonds": "6190 ฿ / 799,000 Ks",
+    "50 (+50 or +5 Bonus)": "32 ฿ / 3,800 Ks",
+    "150 (+150 or +15 Bonus)": "88 ฿ / 11,000 Ks",
+    "250 (+250 or +25 Bonus)": "140 ฿ / 17,700 Ks",
+    "500 (+500 or +65 Bonus)": "288 ฿ / 36,300 Ks",
+}
+
 USER_ORDERS = {}
 
 PACKAGES = {
-    "weekly": [f"Weekly Pass {i}x" for i in range(1, 11)],
+    "weekly": ["Weekly Pass (၁ ပတ်စာ)"],
     "dia2x": [
-        "50 + 50 Diamonds",
-        "100 + 100 Diamonds",
-        "250 + 250 Diamonds",
-        "500 + 500 Diamonds",
-        "1000 + 1000 Diamonds",
+        "50 (+50 or +5 Bonus)",
+        "150 (+150 or +15 Bonus)",
+        "250 (+250 or +25 Bonus)",
+        "500 (+500 or +65 Bonus)",
     ],
-    "starlight": ["Normal Starlight", "Premium Starlight"],
-    "twilight": ["Twilight Pass"],
-    "epic": ["Epic Monthly Pass"],
-    "elite": ["Elite Weekly Pass"],
     "normal": [
-        "50+5 Diamonds", "150+15 Diamonds", "250+25 Diamonds", "500+65 Diamonds",
-        "86 Diamonds", "172 Diamonds", "257 Diamonds", "344 Diamonds",
-        "429 Diamonds", "514 Diamonds", "600 Diamonds", "706 Diamonds",
-        "792 Diamonds", "963 Diamonds", "1,412 Diamonds", "2,195 Diamonds",
-        "2,901 Diamonds", "3,688 Diamonds", "4,394 Diamonds", "5,532 Diamonds",
-        "6,238 Diamonds", "7,376 Diamonds", "7,727 Diamonds", "9,288 Diamonds (HOT)",
-        "12,976 Diamonds", "14,820 Diamonds", "18,576 Diamonds",
+        "86 Diamonds", "172 Diamonds", "275 Diamonds", "343 Diamonds",
+        "429 Diamonds", "565 Diamonds", "600 Diamonds", "706 Diamonds",
+        "878 Diamonds", "963 Diamonds", "1049 Diamonds", "1135 Diamonds",
+        "1412 Diamonds", "1584 Diamonds", "1755 Diamonds", "2195 Diamonds",
+        "3244 Diamonds", "3688 Diamonds", "4394 Diamonds", "5532 Diamonds",
+        "6238 Diamonds", "9288 Diamonds", "11483 Diamonds", "12976 Diamonds",
     ],
 }
-
-def get_sheet_prices():
-    prices = {}
-    try:
-        req = urllib.request.Request(SHEET_CSV_URL, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            lines = [line.decode("utf-8") for line in resp.readlines()]
-            reader = csv.DictReader(lines)
-            for row in reader:
-                item = row.get("Item_Name", "").strip()
-                price = row.get("Price", "").strip()
-                if item and price:
-                    prices[item] = price
-    except Exception as e:
-        logging.error(f"Error fetching sheet: {e}")
-    return prices
 
 def check_mlbb_id(uid, zone):
     try:
@@ -113,18 +122,15 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "btn_main_menu":
         await query.edit_message_text(
+            "👋 မင်္ဂလာပါခင်ဗျာ၊ MLBB Game Top-up Reseller ဝန်ဆောင်မှုမှ ကြိုဆိုပါသည်။\n\n"
             "အောက်ပါ Menu ခလုတ်များမှတစ်ဆင့် အလွယ်တကူ စစ်ဆေးဝယ်ယူနိုင်ပါသည်-",
             reply_markup=get_main_menu_keyboard()
         )
 
     elif data == "btn_prices":
-        prices = get_sheet_prices()
-        if not prices:
-            text = "💎 Sheet ထဲတွင် ဈေးနှုန်းများ မဖြည့်ရသေးပါခင်ဗျာ။"
-        else:
-            text = "💎 **MLBB စိန်ဈေးနှုန်းများ** 💎\n\n"
-            for item, price in prices.items():
-                text += f"• {item} : `{price}`\n"
+        text = "💎 **MLBB စိန်ဈေးနှုန်းများ (ဘတ်ဈေး / ကျပ်ဈေး)** 💎\n\n"
+        for item, price in PRICES_LIST.items():
+            text += f"• **{item}** : `{price}`\n"
         keyboard = [[InlineKeyboardButton("🔙 မီနူးသို့", callback_data="btn_main_menu")]]
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
@@ -133,7 +139,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "💳 **ငွေလွှဲရန် အကောင့်အချက်အလက်များ**\n\n"
             "🇹🇭 **PromptPay (Thai QR)**\n"
             "• အမည်: MR PHYO WANNA LINN\n"
-            "• ဖုန်း: 061-xxx-0038 (Bangkok Bank)\n\n"
+            "• ဖုန်း: `061-xxx-0038`\n\n"
             "🇲🇲 **KPay**\n"
             "• အမည်: Ei Ei Phyu\n"
             "• အကောင့်: `*******1686`\n\n"
@@ -147,11 +153,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "btn_order":
         keyboard = [
             [InlineKeyboardButton("🎟 Weekly Pass", callback_data="cat_weekly"),
-             InlineKeyboardButton("💎 Dia ၂ဆ", callback_data="cat_dia2x")],
-            [InlineKeyboardButton("🌟 Starlight Card", callback_data="cat_starlight"),
-             InlineKeyboardButton("🛡 Twilight Pass", callback_data="cat_twilight")],
-            [InlineKeyboardButton("👑 Epic Monthly", callback_data="cat_epic"),
-             InlineKeyboardButton("⚡ Elite Weekly Pass", callback_data="cat_elite")],
+             InlineKeyboardButton("💎 Dia ၂ဆ (Bonus)", callback_data="cat_dia2x")],
             [InlineKeyboardButton("💎 ပုံမှန်စိန်ဈေး", callback_data="cat_normal")],
             [InlineKeyboardButton("🔙 မီနူးသို့", callback_data="btn_main_menu")]
         ]
@@ -182,9 +184,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data.startswith("pkg_"):
         selected_item = data.replace("pkg_", "")
-        USER_ORDERS[user_id] = {"item": selected_item, "state": "AWAIT_ID"}
+        price_info = PRICES_LIST.get(selected_item, "")
+        USER_ORDERS[user_id] = {"item": selected_item, "price": price_info, "state": "AWAIT_ID"}
         await query.edit_message_text(
-            f"✅ သင်ရွေးချယ်ထားသော ပစ္စည်း: **{selected_item}**\n\n"
+            f"✅ သင်ရွေးချယ်ထားသော ပစ္စည်း: **{selected_item}**\n"
+            f"💰 ဈေးနှုန်း: `{price_info}`\n\n"
             f"🎮 ကျေးဇူးပြု၍ သင်၏ **MLBB UID နှင့် Zone ID** ကို ရိုက်ပို့ပေးပါခင်ဗျာ။\n"
             f"(ဥပမာ - `95480598 2500`)"
         )
@@ -222,12 +226,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             USER_ORDERS[user_id]["server"] = server
             USER_ORDERS[user_id]["state"] = "AWAIT_SLIP"
 
+            item_name = USER_ORDERS[user_id]["item"]
+            item_price = USER_ORDERS[user_id].get("price", "")
+
             info_text = (
                 f"🎮 **MLBB အကောင့် အချက်အလက်**\n"
                 f"• IGN: `{ign}`\n"
                 f"• Server: `{server}`\n"
                 f"• UID: `{uid} ({zone})`\n"
-                f"• ပစ္စည်း: **{USER_ORDERS[user_id]['item']}**\n\n"
+                f"• ပစ္စည်း: **{item_name}**\n"
+                f"• ကျသင့်ငွေ: `{item_price}`\n\n"
                 f"💳 **ငွေလွှဲရန် အောက်ပါ QR များဖြင့် Scan ဖတ်နိုင်ပါသည်-**\n"
                 f"1️⃣ 🇹🇭 PromptPay (MR PHYO WANNA LINN)\n"
                 f"2️⃣ 🇲🇲 KPay (Ei Ei Phyu)\n"
@@ -236,9 +244,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             media_group = [
-                InputMediaPhoto(media=QR_URLS[0], caption=info_text, parse_mode="Markdown"),
-                InputMediaPhoto(media=QR_URLS[1]),
-                InputMediaPhoto(media=QR_URLS[2])
+                InputMediaPhoto(media=DEFAULT_QR_URLS[0], caption=info_text, parse_mode="Markdown"),
+                InputMediaPhoto(media=DEFAULT_QR_URLS[1]),
+                InputMediaPhoto(media=DEFAULT_QR_URLS[2])
             ]
             await update.message.reply_media_group(media=media_group)
         else:
@@ -256,7 +264,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🎮 IGN: `{order['ign']}`\n"
             f"🌐 Server: `{order['server']}`\n"
             f"🆔 UID: `{order['uid']} ({order['zone']})`\n"
-            f"📦 ပစ္စည်း: **{order['item']}**\n\n"
+            f"📦 ပစ္စည်း: **{order['item']}**\n"
+            f"💰 ကျသင့်ငွေ: `{order.get('price', '')}`\n\n"
             f"စလစ်စစ်ဆေးပြီးပါက အတည်ပြုခလုတ်ကို နှိပ်ပါ-"
         )
 
