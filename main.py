@@ -5,7 +5,14 @@ import logging
 import urllib.request
 import urllib.parse
 import json
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+)
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -31,7 +38,7 @@ DEFAULT_QR_URLS = [
     "https://i.ibb.co/sJcwtXv7/wave-qr.jpg"     # WavePay
 ]
 
-# ဈေးနှုန်းစာရင်းအသစ်များ (ဘတ်ဈေး နှင့် ကျပ်ဈေး)
+# ဈေးနှုန်းစာရင်းများ
 PRICES_LIST = {
     "Weekly Pass (၁ ပတ်စာ)": "57 ฿ / 7,200 Ks",
     "86 Diamonds": "46 ฿ / 5,800 Ks",
@@ -98,21 +105,38 @@ def check_mlbb_id(uid, zone):
         logging.error(f"API Error: {e}")
     return None, None
 
-def get_main_menu_keyboard():
+def get_bottom_keyboard():
+    """စာရိုက်သည့် အကွက်အောက်တွင် အမြဲရှိနေမည့် Menu ခလုတ်များ"""
+    keyboard = [
+        [KeyboardButton("🛒 အော်ဒါတင်မယ်"), KeyboardButton("💎 စိန်ဈေးနှုန်းများ")],
+        [KeyboardButton("💳 ငွေလွှဲအကောင့်များ"), KeyboardButton("🔙 ပင်မမီနူး")]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+def get_inline_main_menu():
     keyboard = [
         [InlineKeyboardButton("💎 စိန်ဈေးနှုန်းများ", callback_data="btn_prices"),
          InlineKeyboardButton("💳 ငွေလွှဲအကောင့်များ", callback_data="btn_payment")],
-        [InlineKeyboardButton("🛒 အော်ဒါတင်မယ်", callback_data="btn_order"),
-         InlineKeyboardButton("👤 Admin ဆက်သွယ်ရန်", url="https://t.me/Ayar_reseller_bot")]
+        [InlineKeyboardButton("🛒 အော်ဒါတင်မယ်", callback_data="btn_order")],
+        [InlineKeyboardButton("👤 Admin ဆက်သွယ်ရန်", url="https://t.me/Ayar_reseller_bot")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    USER_ORDERS.pop(user_id, None)
     msg = (
         "👋 မင်္ဂလာပါခင်ဗျာ၊ MLBB Game Top-up Reseller ဝန်ဆောင်မှုမှ ကြိုဆိုပါသည်။\n\n"
         "အောက်ပါ Menu ခလုတ်များမှတစ်ဆင့် အလွယ်တကူ စစ်ဆေးဝယ်ယူနိုင်ပါသည်-"
     )
-    await update.message.reply_text(msg, reply_markup=get_main_menu_keyboard())
+    await update.message.reply_text(
+        msg,
+        reply_markup=get_bottom_keyboard()
+    )
+    await update.message.reply_text(
+        "👇 လိုအပ်ရာကို ရွေးချယ်ပေးပါ-",
+        reply_markup=get_inline_main_menu()
+    )
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -121,10 +145,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
 
     if data == "btn_main_menu":
+        USER_ORDERS.pop(user_id, None)
         await query.edit_message_text(
             "👋 မင်္ဂလာပါခင်ဗျာ၊ MLBB Game Top-up Reseller ဝန်ဆောင်မှုမှ ကြိုဆိုပါသည်။\n\n"
             "အောက်ပါ Menu ခလုတ်များမှတစ်ဆင့် အလွယ်တကူ စစ်ဆေးဝယ်ယူနိုင်ပါသည်-",
-            reply_markup=get_main_menu_keyboard()
+            reply_markup=get_inline_main_menu()
         )
 
     elif data == "btn_prices":
@@ -186,11 +211,15 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         selected_item = data.replace("pkg_", "")
         price_info = PRICES_LIST.get(selected_item, "")
         USER_ORDERS[user_id] = {"item": selected_item, "price": price_info, "state": "AWAIT_ID"}
+        
+        cancel_kb = [[InlineKeyboardButton("🔙 မီနူးသို့ ပြန်သွားမည်", callback_data="btn_main_menu")]]
         await query.edit_message_text(
             f"✅ သင်ရွေးချယ်ထားသော ပစ္စည်း: **{selected_item}**\n"
             f"💰 ဈေးနှုန်း: `{price_info}`\n\n"
             f"🎮 ကျေးဇူးပြု၍ သင်၏ **MLBB UID နှင့် Zone ID** ကို ရိုက်ပို့ပေးပါခင်ဗျာ။\n"
-            f"(ဥပမာ - `95480598 2500`)"
+            f"(ဥပမာ - `95480598 2500` သို့မဟုတ် `95480598(2500)`)",
+            reply_markup=InlineKeyboardMarkup(cancel_kb),
+            parse_mode="Markdown"
         )
 
     elif data.startswith("adm_ok_"):
@@ -209,10 +238,60 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    text = update.message.text or ""
+    text = (update.message.text or "").strip()
 
+    # Reply Keyboard ခလုတ်များကို စစ်ဆေးခြင်း
+    if text in ["🔙 ပင်မမီနူး", "/start", "/menu"]:
+        USER_ORDERS.pop(user_id, None)
+        await update.message.reply_text(
+            "👋 မင်္ဂလာပါခင်ဗျာ၊ ပင်မ Menu သို့ ပြန်လည်ရောက်ရှိပါပြီ-",
+            reply_markup=get_inline_main_menu()
+        )
+        return
+
+    if text == "💎 စိန်ဈေးနှုန်းများ":
+        p_text = "💎 **MLBB စိန်ဈေးနှုန်းများ (ဘတ်ဈေး / ကျပ်ဈေး)** 💎\n\n"
+        for item, price in PRICES_LIST.items():
+            p_text += f"• **{item}** : `{price}`\n"
+        keyboard = [[InlineKeyboardButton("🔙 မီနူးသို့", callback_data="btn_main_menu")]]
+        await update.message.reply_text(p_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        return
+
+    if text == "💳 ငွေလွှဲအကောင့်များ":
+        pay_text = (
+            "💳 **ငွေလွှဲရန် အကောင့်အချက်အလက်များ**\n\n"
+            "🇹🇭 **PromptPay (Thai QR)**\n"
+            "• အမည်: MR PHYO WANNA LINN\n"
+            "• ဖုန်း: `061-xxx-0038`\n\n"
+            "🇲🇲 **KPay**\n"
+            "• အမည်: Ei Ei Phyu\n"
+            "• အကောင့်: `*******1686`\n\n"
+            "🇲🇲 **WavePay**\n"
+            "• အမည်: Swan Pyae Sone\n"
+            "• ဖုန်း: `09986422066`\n"
+        )
+        keyboard = [[InlineKeyboardButton("🔙 မီနူးသို့", callback_data="btn_main_menu")]]
+        await update.message.reply_text(pay_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        return
+
+    if text == "🛒 အော်ဒါတင်မယ်":
+        keyboard = [
+            [InlineKeyboardButton("🎟 Weekly Pass", callback_data="cat_weekly"),
+             InlineKeyboardButton("💎 Dia ၂ဆ (Bonus)", callback_data="cat_dia2x")],
+            [InlineKeyboardButton("💎 ပုံမှန်စိန်ဈေး", callback_data="cat_normal")],
+            [InlineKeyboardButton("🔙 မီနူးသို့", callback_data="btn_main_menu")]
+        ]
+        await update.message.reply_text(
+            "🛒 **ဝယ်ယူလိုသော ပက်ကေ့ချ် အမျိုးအစားကို ရွေးချယ်ပါ-**",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown"
+        )
+        return
+
+    # ID ဖတ်သည့် အဆင့်
     if user_id in USER_ORDERS and USER_ORDERS[user_id].get("state") == "AWAIT_ID":
-        match = re.search(r"(\d{6,12})\s*[\(\[]?(\d{3,6})[\)\]]?", text)
+        # ID ပုံစံအားလုံး (space ခြားခြား၊ ကွင်းစကွင်းပိတ်ပါပါ) အဆင်ပြေစေရန် Regex
+        match = re.search(r"(\d{5,12})\s*[\(\[\{]?\s*(\d{3,6})\s*[\)\]\}]?", text)
         if match:
             uid, zone = match.group(1), match.group(2)
             ign, server = check_mlbb_id(uid, zone)
@@ -250,7 +329,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
             await update.message.reply_media_group(media=media_group)
         else:
-            await update.message.reply_text("⚠️ ID ပုံစံ မှားယွင်းနေပါသည်။ ဥပမာ `95480598 2500` ဟု ရိုက်ပို့ပေးပါ။")
+            await update.message.reply_text(
+                "⚠️ ID ပုံစံ မှားယွင်းနေပါသည်။ ဥပမာ `95480598 2500` သို့မဟုတ် `95480598(2500)` ဟု ရိုက်ပို့ပေးပါ။\n\n"
+                "မီနူးသို့ ပြန်သွားလိုပါက အောက်က **'🔙 ပင်မမီနူး'** ကို နှိပ်ပါခင်ဗျာ။"
+            )
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
