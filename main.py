@@ -29,14 +29,13 @@ BOT_TOKEN = "8834166717:AAFfuD_ge9Xkfa48sp0iBaRXRpHALWaI5uk"
 ADMIN_ID = 8863215122
 ADMIN_USERNAME_URL = "https://t.me/MayLayGameStore"
 
-# Cloud Image URLs for QR Codes
 DEFAULT_QR_URLS = [
     "https://i.ibb.co/6R2qZz7W/thai-qr.png",   # Thai PromptPay
     "https://i.ibb.co/VWVw4z4P/kpay-qr.jpg",    # KPay
     "https://i.ibb.co/sJcwtXv7/wave-qr.jpg"     # WavePay
 ]
 
-# Weekly Pass ၁ ပတ်စာမှ ၁၀ ပတ်စာအထိ
+# Weekly Pass စာရင်း
 WEEKLY_PASSES = [
     ("Weekly Pass (1x)", "57 ฿ / 7,200 Ks"),
     ("Weekly Pass (2x)", "114 ฿ / 14,400 Ks"),
@@ -131,17 +130,17 @@ PACKAGES = {
 USER_ORDERS = {}
 
 PAYMENT_TEXT = (
-    "💳 **ငွေလွှဲရန် အကောင့်အချက်အလက်များနှင့် QR များ**\n\n"
-    "🇹🇭 **PromptPay (Thai QR)**\n"
+    "💳 <b>ငွေလွှဲရန် အကောင့်အချက်အလက်များနှင့် QR များ</b>\n\n"
+    "🇹🇭 <b>PromptPay (Thai QR)</b>\n"
     "• အမည်: MR PHYO WANNA LINN\n"
-    "• ဖုန်း: `061-xxx-0038`\n\n"
-    "🇲🇲 **KPay**\n"
+    "• ဖုန်း: <code>061-xxx-0038</code>\n\n"
+    "🇲🇲 <b>KPay</b>\n"
     "• အမည်: Ei Ei Phyu\n"
-    "• အကောင့်: `*******1686`\n\n"
-    "🇲🇲 **WavePay**\n"
+    "• အကောင့်: <code>*******1686</code>\n\n"
+    "🇲🇲 <b>WavePay</b>\n"
     "• အမည်: Swan Pyae Sone\n"
-    "• ဖုန်း: `09986422066`\n\n"
-    "📌 *အပေါ်တွင် Scan ဖတ်နိုင်သော QR Code ၃ ခု ပို့ပေးထားပါသည်ခင်ဗျာ။*"
+    "• ဖုန်း: <code>09986422066</code>\n\n"
+    "📌 <i>အပေါ်တွင် Scan ဖတ်နိုင်သော QR Code ၃ ခု ပို့ပေးထားပါသည်ခင်ဗျာ။</i>"
 )
 
 def check_mlbb_id(uid, zone):
@@ -183,15 +182,6 @@ def get_price_category_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-async def send_payment_qr_group(chat_id, context: ContextTypes.DEFAULT_TYPE):
-    """ငွေလွှဲအကောင့် စာသားနှင့် QR ပုံများကို တွဲလျက်ပို့ပေးခြင်း"""
-    media_group = [
-        InputMediaPhoto(media=DEFAULT_QR_URLS[0], caption=PAYMENT_TEXT, parse_mode="Markdown"),
-        InputMediaPhoto(media=DEFAULT_QR_URLS[1]),
-        InputMediaPhoto(media=DEFAULT_QR_URLS[2])
-    ]
-    await context.bot.send_media_group(chat_id=chat_id, media=media_group)
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     USER_ORDERS.pop(user_id, None)
@@ -201,6 +191,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(msg, reply_markup=get_bottom_keyboard())
     await update.message.reply_text("👇 လိုအပ်ရာကို ရွေးချယ်ပေးပါ-", reply_markup=get_inline_main_menu())
+
+async def send_payment_qr(chat_id, context: ContextTypes.DEFAULT_TYPE):
+    media_group = [
+        InputMediaPhoto(media=DEFAULT_QR_URLS[0], caption=PAYMENT_TEXT, parse_mode="HTML"),
+        InputMediaPhoto(media=DEFAULT_QR_URLS[1]),
+        InputMediaPhoto(media=DEFAULT_QR_URLS[2])
+    ]
+    await context.bot.send_media_group(chat_id=chat_id, media=media_group)
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -218,51 +216,50 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "btn_prices":
         await query.edit_message_text(
-            "💎 **ကြည့်ရှုလိုသော စိန်ဈေးနှုန်း အမျိုးအစားကို ရွေးချယ်ပါ-**",
+            "💎 <b>ကြည့်ရှုလိုသော စိန်ဈေးနှုန်း အမျိုးအစားကို ရွေးချယ်ပါ-</b>",
             reply_markup=get_price_category_keyboard(),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
     elif data == "view_p_thb":
-        text = "🇹🇭 **ထိုင်းဘတ်ဈေးနှုန်းများ (THB)** 🇹🇭\n\n"
+        text = "🇹🇭 <b>ထိုင်းဘတ်ဈေးနှုန်းများ (THB)</b> 🇹🇭\n\n"
         for item, price in PRICES_THB:
-            text += f"🔹 `{item:<15}` : **{price}**\n"
+            text += f"🔹 <code>{item:<15}</code> : <b>{price}</b>\n"
         keyboard = [
             [InlineKeyboardButton("🇲🇲 ကျပ်ဈေးကြည့်မည်", callback_data="view_p_mmk"),
              InlineKeyboardButton("🎟 Pass / Dia 2x", callback_data="view_p_special")],
             [InlineKeyboardButton("🔙 နောက်သို့", callback_data="btn_prices")]
         ]
-        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
     elif data == "view_p_mmk":
-        text = "🇲🇲 **မြန်မာကျပ်ဈေးနှုန်းများ (MMK)** 🇲🇲\n\n"
+        text = "🇲🇲 <b>မြန်မာကျပ်ဈေးနှုန်းများ (MMK)</b> 🇲🇲\n\n"
         for item, price in PRICES_MMK:
-            text += f"🔹 `{item:<15}` : **{price}**\n"
+            text += f"🔹 <code>{item:<15}</code> : <b>{price}</b>\n"
         keyboard = [
             [InlineKeyboardButton("🇹🇭 ဘတ်ဈေးကြည့်မည်", callback_data="view_p_thb"),
              InlineKeyboardButton("🎟 Pass / Dia 2x", callback_data="view_p_special")],
             [InlineKeyboardButton("🔙 နောက်သို့", callback_data="btn_prices")]
         ]
-        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
     elif data == "view_p_special":
-        text = "🎟 **Weekly Pass & Dia ၂ဆ ဘောနပ်စ် ဈေးနှုန်းများ** ✨\n\n"
-        text += "🎟 **Weekly Diamond Passes:**\n"
+        text = "🎟 <b>Weekly Pass & Dia ၂ဆ ဘောနပ်စ် ဈေးနှုန်းများ</b> ✨\n\n"
+        text += "🎟 <b>Weekly Diamond Passes:</b>\n"
         for item, price in WEEKLY_PASSES:
-            text += f"• `{item}` : `{price}`\n"
-        text += "\n💎 **Dia 2x (First Recharge Bonus):**\n"
+            text += f"• <code>{item}</code> : <code>{price}</code>\n"
+        text += "\n💎 <b>Dia 2x (First Recharge Bonus):</b>\n"
         for item, price in DIA_2X_LIST:
-            text += f"• `{item}` : `{price}`\n"
+            text += f"• <code>{item}</code> : <code>{price}</code>\n"
         keyboard = [
             [InlineKeyboardButton("🇹🇭 ဘတ်ဈေး", callback_data="view_p_thb"),
              InlineKeyboardButton("🇲🇲 ကျပ်ဈေး", callback_data="view_p_mmk")],
             [InlineKeyboardButton("🔙 နောက်သို့", callback_data="btn_prices")]
         ]
-        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
     elif data == "btn_payment":
-        # ငွေလွှဲအကောင့်ကို နှိပ်ပါက QR များနှင့်တကွ ပို့ပေးခြင်း
-        await send_payment_qr_group(query.message.chat_id, context)
+        await send_payment_qr(query.message.chat_id, context)
 
     elif data == "btn_order":
         keyboard = [
@@ -272,9 +269,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🔙 မီနူးသို့", callback_data="btn_main_menu")]
         ]
         await query.edit_message_text(
-            "🛒 **ဝယ်ယူလိုသော ပက်ကေ့ချ် အမျိုးအစားကို ရွေးချယ်ပါ-**",
+            "🛒 <b>ဝယ်ယူလိုသော ပက်ကေ့ချ် အမျိုးအစားကို ရွေးချယ်ပါ-</b>",
             reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
     elif data.startswith("cat_"):
@@ -291,9 +288,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard.append(row)
         keyboard.append([InlineKeyboardButton("🔙 နောက်သို့", callback_data="btn_order")])
         await query.edit_message_text(
-            "📦 **ဝယ်ယူမည့် အထုပ်/ပမာဏကို ရွေးချယ်ပါ-**",
+            "📦 <b>ဝယ်ယူမည့် အထုပ်/ပမာဏကို ရွေးချယ်ပါ-</b>",
             reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
     elif data.startswith("pkg_"):
@@ -303,18 +300,18 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         cancel_kb = [[InlineKeyboardButton("🔙 မီနူးသို့ ပြန်သွားမည်", callback_data="btn_main_menu")]]
         await query.edit_message_text(
-            f"✅ ရွေးချယ်ထားသော ပစ္စည်း: **{selected_item}**\n\n"
-            f"🎮 ကျေးဇူးပြု၍ သင်၏ **MLBB UID နှင့် Zone ID** ကို ရိုက်ပို့ပေးပါခင်ဗျာ။\n"
-            f"(ဥပမာ - `95480598 2500` သို့မဟုတ် `95480598(2500)`)",
+            f"✅ ရွေးချယ်ထားသော ပစ္စည်း: <b>{selected_item}</b>\n\n"
+            f"🎮 ကျေးဇူးပြု၍ သင်၏ <b>MLBB UID နှင့် Zone ID</b> ကို ရိုက်ပို့ပေးပါခင်ဗျာ။\n"
+            f"(ဥပမာ - <code>95480598 2500</code> သို့မဟုတ် <code>95480598(2500)</code>)",
             reply_markup=InlineKeyboardMarkup(cancel_kb),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
     elif data.startswith("adm_ok_"):
         cust_id = int(data.replace("adm_ok_", ""))
         await query.edit_message_caption(
-            caption=f"{query.message.caption}\n\n✅ **အတည်ပြုပြီးပါပြီ - စိန်ထည့်ပေးပြီးပါပြီ**",
-            parse_mode="Markdown"
+            caption=f"{query.message.caption}\n\n✅ <b>အတည်ပြုပြီးပါပြီ - စိန်ထည့်ပေးပြီးပါပြီ</b>",
+            parse_mode="HTML"
         )
         try:
             await context.bot.send_message(
@@ -328,7 +325,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = (update.message.text or "").strip()
 
-    if text in ["🔙 ပင်မမီနူး", "/start", "/menu"]:
+    # ခလုတ်စာသားများကို စစ်ဆေးခြင်း
+    if "ပင်မမီနူး" in text or text in ["/start", "/menu"]:
         USER_ORDERS.pop(user_id, None)
         await update.message.reply_text(
             "👋 မင်္ဂလာပါခင်ဗျာ၊ ပင်မ Menu သို့ ပြန်လည်ရောက်ရှိပါပြီ-",
@@ -336,20 +334,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    if text == "💎 စိန်ဈေးနှုန်းများ":
+    if "စိန်ဈေးနှုန်းများ" in text:
         await update.message.reply_text(
-            "💎 **ကြည့်ရှုလိုသော စိန်ဈေးနှုန်း အမျိုးအစားကို ရွေးချယ်ပါ-**",
+            "💎 <b>ကြည့်ရှုလိုသော စိန်ဈေးနှုန်း အမျိုးအစားကို ရွေးချယ်ပါ-</b>",
             reply_markup=get_price_category_keyboard(),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
 
-    if text == "💳 ငွေလွှဲအကောင့်များ":
-        # အောက်ခြေခလုတ်မှ နှိပ်လျှင်လည်း QR များနှင့်တကွ ပို့ပေးခြင်း
-        await send_payment_qr_group(update.message.chat_id, context)
+    if "ငွေလွှဲအကောင့်များ" in text:
+        await send_payment_qr(update.message.chat_id, context)
         return
 
-    if text == "🛒 အော်ဒါတင်မယ်":
+    if "အော်ဒါတင်မယ်" in text:
         keyboard = [
             [InlineKeyboardButton("🎟 Weekly Pass (1x ~ 10x)", callback_data="cat_weekly")],
             [InlineKeyboardButton("💎 Dia ၂ဆ (Bonus)", callback_data="cat_dia2x")],
@@ -357,12 +354,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🔙 မီနူးသို့", callback_data="btn_main_menu")]
         ]
         await update.message.reply_text(
-            "🛒 **ဝယ်ယူလိုသော ပက်ကေ့ချ် အမျိုးအစားကို ရွေးချယ်ပါ-**",
+            "🛒 <b>ဝယ်ယူလိုသော ပက်ကေ့ချ် အမျိုးအစားကို ရွေးချယ်ပါ-</b>",
             reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
 
+    # ID ဖတ်သည့် အဆင့်
     if user_id in USER_ORDERS and USER_ORDERS[user_id].get("state") == "AWAIT_ID":
         match = re.search(r"(\d{5,12})\s*[\(\[\{]?\s*(\d{3,6})\s*[\)\]\}]?", text)
         if match:
@@ -382,9 +380,74 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             item_price = USER_ORDERS[user_id].get("price", "")
 
             info_text = (
-                f"🎮 **MLBB အကောင့် အချက်အလက်**\n"
-                f"• IGN: `{ign}`\n"
-                f"• Server: `{server}`\n"
-                f"• UID: `{uid} ({zone})`\n"
-                f"• ပစ္စည်း: **{item_name}**\n"
-                f"• ကျ
+                f"🎮 <b>MLBB အကောင့် အချက်အလက်</b>\n"
+                f"• IGN: <code>{ign}</code>\n"
+                f"• Server: <code>{server}</code>\n"
+                f"• UID: <code>{uid} ({zone})</code>\n"
+                f"• ပစ္စည်း: <b>{item_name}</b>\n"
+                f"• ကျသင့်ငွေ: <code>{item_price}</code>\n\n"
+                f"💳 <b>ငွေလွှဲရန် အောက်ပါ QR များဖြင့် Scan ဖတ်နိုင်ပါသည်-</b>\n"
+                f"1️⃣ 🇹🇭 PromptPay (MR PHYO WANNA LINN)\n"
+                f"2️⃣ 🇲🇲 KPay (Ei Ei Phyu)\n"
+                f"3️⃣ 🇲🇲 WavePay (Swan Pyae Sone)\n\n"
+                f"📌 <i>ငွေလွှဲပြီးပါက ဤနေရာတွင် ငွေလွှဲစလစ်ပုံ ပို့ပေးပါခင်ဗျာ။</i>"
+            )
+
+            media_group = [
+                InputMediaPhoto(media=DEFAULT_QR_URLS[0], caption=info_text, parse_mode="HTML"),
+                InputMediaPhoto(media=DEFAULT_QR_URLS[1]),
+                InputMediaPhoto(media=DEFAULT_QR_URLS[2])
+            ]
+            await update.message.reply_media_group(media=media_group)
+        else:
+            await update.message.reply_text(
+                "⚠️ ID ပုံစံ မှားယွင်းနေပါသည်။ ဥပမာ <code>95480598 2500</code> သို့မဟုတ် <code>95480598(2500)</code> ဟု ရိုက်ပို့ပေးပါ။\n\n"
+                "မီနူးသို့ ပြန်သွားလိုပါက အောက်က <b>'🔙 ပင်မမီနူး'</b> ကို နှိပ်ပါခင်ဗျာ။",
+                parse_mode="HTML"
+            )
+
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id in USER_ORDERS and USER_ORDERS[user_id].get("state") == "AWAIT_SLIP":
+        order = USER_ORDERS[user_id]
+        photo_file = update.message.photo[-1].file_id
+
+        admin_caption = (
+            f"🛒 <b>အော်ဒါအသစ် ရောက်ရှိပါသည်!</b>\n\n"
+            f"👤 ကာစတမ်မာ: @{update.effective_user.username or update.effective_user.first_name}\n"
+            f"🎮 IGN: <code>{order['ign']}</code>\n"
+            f"🌐 Server: <code>{order['server']}</code>\n"
+            f"🆔 UID: <code>{order['uid']} ({order['zone']})</code>\n"
+            f"📦 ပစ္စည်း: <b>{order['item']}</b>\n"
+            f"💰 ကျသင့်ငွေ: <code>{order.get('price', '')}</code>\n\n"
+            f"စလစ်စစ်ဆေးပြီးပါက အတည်ပြုခလုတ်ကို နှိပ်ပါ-"
+        )
+
+        admin_keyboard = [[InlineKeyboardButton("✅ စိန်ထည့်ပြီး အတည်ပြုမည်", callback_data=f"adm_ok_{user_id}")]]
+
+        await context.bot.send_photo(
+            chat_id=ADMIN_ID,
+            photo=photo_file,
+            caption=admin_caption,
+            reply_markup=InlineKeyboardMarkup(admin_keyboard),
+            parse_mode="HTML"
+        )
+
+        await update.message.reply_text(
+            "✅ ငွေလွှဲစလစ် လက်ခံရရှိပါပြီခင်ဗျာ။ Admin မှ စစ်ဆေးပြီး စိန်ထည့်သွင်းပေးပါမည်။"
+        )
+        USER_ORDERS.pop(user_id, None)
+
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("menu", start))
+    app.add_handler(CallbackQueryHandler(handle_callback))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+
+    print("Bot is running...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
